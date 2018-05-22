@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.axis.com/vapix/http_cgi/recording/list1.xsd">
+  <recordings totalnumberofrecordings="2690" numberofrecordings="534">
+    <recording diskid="SD_DISK" recordingid="20180517_174342_5EA6_ACCC8E353512" starttime="2018-05-18T00:43:42.984958Z" starttimelocal="2018-05-17T17:43:42.984958-07:00" stoptime="" stoptimelocal="" recordingtype="triggered" eventid="ACC_Motion2" eventtrigger="ACC_MotionAction" recordingstatus="recording" source="2" locked="No">
+        <video mimetype="video/x-h264" width="1920" height="720" framerate="12:1" resolution="1920x720"/>
+    </recording>
+    <recording diskid="SD_DISK" recordingid="20180517_174055_BEE6_ACCC8E353512" starttime="2018-05-18T00:40:55.361211Z" starttimelocal="2018-05-17T17:40:55.361211-07:00" stoptime="2018-05-18T00:41:40.516340Z" stoptimelocal="2018-05-17T17:41:40.516340-07:00" recordingtype="triggered" eventid="ACC_Motion2" eventtrigger="ACC_MotionAction" recordingstatus="completed" source="2" locked="No">
+        <video mimetype="video/x-h264" width="1920" height="720" framerate="12:1" resolution="1920x720"/>
+    </recording>
+  </recordings>
+</root>
