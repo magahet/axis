@@ -25,7 +25,7 @@ const (
 
 var (
 	count     int
-	maxLength int
+	maxLength string
 	daytime   bool
 	sunrise   string
 	sunset    string
@@ -68,7 +68,7 @@ func filterRecording(r *types.Recording) (bool, error) {
 	}
 
 	// Max length
-	if maxLength > 0 {
+	if maxLength != "" {
 		start, err := time.Parse(time.RFC3339, r.StartTime)
 		if err != nil {
 			return true, errors.Wrap(err, "could not parse start time")
@@ -78,15 +78,22 @@ func filterRecording(r *types.Recording) (bool, error) {
 			return true, errors.Wrap(err, "could not parse stop time")
 		}
 
-		duration := stop.Sub(start)
+		duration := stop.Sub(start).Truncate(time.Second)
 		if viper.GetBool("verbose") {
-			fmt.Printf("%s checking duration: %s\n", startLocal, duration)
+			fmt.Printf("%s checking duration: %s...", startLocal, duration)
 		}
-		if time.Duration(maxLength) < duration {
+		maxDuration, err := time.ParseDuration(maxLength)
+		if err != nil {
+			return true, errors.Wrap(err, "could not parse max length")
+		}
+		if duration > maxDuration {
 			if viper.GetBool("verbose") {
-				fmt.Printf("%s too long. duration: %s\n", startLocal, duration)
+				fmt.Printf("too long (>%s)\n", maxDuration)
 			}
 			return true, nil
+		}
+		if viper.GetBool("verbose") {
+			fmt.Println("ok")
 		}
 	}
 
@@ -205,7 +212,7 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	pullCmd.Flags().IntVarP(&count, "count", "c", 0, "Max number of videos to download (default: unlimited)")
-	pullCmd.Flags().IntVarP(&maxLength, "max-length", "m", 0, "Exlude recordings longer than MAXLENGTH")
+	pullCmd.Flags().StringVarP(&maxLength, "max-length", "m", "10m", "Exlude recordings longer than MAXLENGTH")
 	pullCmd.Flags().BoolVarP(&daytime, "daytime", "d", false, "Exclude recordings that occur at night")
 	pullCmd.Flags().StringVar(&sunrise, "sunrise", "7:00AM", "Sunrise")
 	pullCmd.Flags().StringVar(&sunset, "sunset", "6:00PM", "Sunset")
