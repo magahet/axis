@@ -23,7 +23,22 @@ var lsCmd = &cobra.Command{
 			return errors.Wrap(err, "could not get recordings")
 		}
 
-		fmt.Println(recordings)
+		i := 0
+		for _, r := range recordings.Recording {
+			exclude, err := r.Filter(maxLength, daytime, sunrise, sunset)
+			if err != nil {
+				return errors.Wrap(err, "problem checking filters")
+			}
+			if exclude {
+				continue
+			}
+			fmt.Println(r)
+			// Max download count
+			i += 1
+			if count > 0 && i >= count {
+				break
+			}
+		}
 		return nil
 	},
 }
@@ -40,4 +55,9 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// lsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	lsCmd.Flags().IntVarP(&count, "count", "c", 0, "Max number of videos to download (default: unlimited)")
+	lsCmd.Flags().StringVarP(&maxLength, "max-length", "m", "10m", "Exlude recordings longer than MAXLENGTH")
+	lsCmd.Flags().BoolVarP(&daytime, "daytime", "d", false, "Exclude recordings that occur at night")
+	lsCmd.Flags().StringVar(&sunrise, "sunrise", "7:00AM", "Sunrise")
+	lsCmd.Flags().StringVar(&sunset, "sunset", "6:00PM", "Sunset")
 }

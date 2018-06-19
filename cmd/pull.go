@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -21,14 +20,6 @@ const (
 	SchemaVersion      = "1"
 	ExportFormat       = "matroska"
 	DiskID             = "SD_DISK"
-)
-
-var (
-	count     int
-	maxLength string
-	daytime   bool
-	sunrise   string
-	sunset    string
 )
 
 func DownloadFile(filepath string, url string) error {
@@ -56,78 +47,6 @@ func DownloadFile(filepath string, url string) error {
 	return nil
 }
 
-func filterRecording(r *types.Recording) (bool, error) {
-	startLocal, _ := types.ToLocalTime(r.StartTime)
-
-	// No stop time. Still recording.
-	if r.StopTime == "" {
-		if viper.GetBool("verbose") {
-			fmt.Printf("%s has no stop time\n", startLocal)
-		}
-		return true, nil
-	}
-
-	// Max length
-	if maxLength != "" {
-		start, err := time.Parse(time.RFC3339, r.StartTime)
-		if err != nil {
-			return true, errors.Wrap(err, "could not parse start time")
-		}
-		stop, err := time.Parse(time.RFC3339, r.StopTime)
-		if err != nil {
-			return true, errors.Wrap(err, "could not parse stop time")
-		}
-
-		duration := stop.Sub(start).Truncate(time.Second)
-		if viper.GetBool("verbose") {
-			fmt.Printf("%s checking duration: %s...", startLocal, duration)
-		}
-		maxDuration, err := time.ParseDuration(maxLength)
-		if err != nil {
-			return true, errors.Wrap(err, "could not parse max length")
-		}
-		if duration > maxDuration {
-			if viper.GetBool("verbose") {
-				fmt.Printf("too long (>%s)\n", maxDuration)
-			}
-			return true, nil
-		}
-		if viper.GetBool("verbose") {
-			fmt.Println("ok")
-		}
-	}
-
-	// Daytime only
-	if daytime {
-		start, err := time.Parse(time.RFC3339, r.StartTime)
-		if err != nil {
-			return true, errors.Wrap(err, "could not parse start time")
-		}
-		after, err := time.Parse(time.Kitchen, sunrise)
-		if err != nil {
-			return true, errors.Wrap(err, "could not parse sunrise")
-		}
-		before, err := time.Parse(time.Kitchen, sunset)
-		if err != nil {
-			return true, errors.Wrap(err, "could not parse sunset")
-		}
-
-		if clockMinutes(start) < clockMinutes(after) || clockMinutes(start) > clockMinutes(before) {
-			if viper.GetBool("verbose") {
-				fmt.Printf("%s outside of daylight hours\n", startLocal)
-			}
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-func clockMinutes(t time.Time) int {
-	h, m, _ := t.Clock()
-	return h*60 + m
-}
-
 func pull(cmd *cobra.Command, args []string) error {
 	fmt.Println("pull called")
 	host := viper.GetString("host")
@@ -149,13 +68,9 @@ func pull(cmd *cobra.Command, args []string) error {
 		fmt.Println(recordings)
 	}
 
-	for i, r := range recordings.Recording {
-		// Max download count
-		if count > 0 && i >= count {
-			break
-		}
-
-		exclude, err := filterRecording(r)
+	i := 0
+	for _, r := range recordings.Recording {
+		exclude, err := r.Filter(maxLength, daytime, sunrise, sunset)
 		if err != nil {
 			return errors.Wrap(err, "problem checking filters")
 		}
@@ -163,8 +78,7 @@ func pull(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
-		startTime, _ := types.ToLocalTime(r.StartTime)
-		fileName := fmt.Sprintf("%s.mkv", startTime)
+		fileName := fmt.Sprintf("%s.mkv", r.StartTimeLocal)
 		path := filepath.Join(saveDir, fileName)
 		if _, err := os.Stat(path); err == nil {
 			fmt.Printf("%s already downloaded\n", fileName)
@@ -187,6 +101,13 @@ func pull(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Println("done")
+
+		// Max download count
+		i += 1
+		if count > 0 && i >= count {
+			break
+		}
+
 	}
 
 	return nil

@@ -6,6 +6,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	count int
+	maxLength string
+	daytime   bool
+	sunrise   string
+	sunset    string
+)
+
 // recordCmd represents the record command
 var recordCmd = &cobra.Command{
 	Use:   "record",
